@@ -58,16 +58,23 @@ public class SqlToLinq
         // Step 1: Replace column names with LINQ property references (e.g., "name" -> "x.Name")
         whereClause = Regex.Replace(
             whereClause,
-            @"\b([a-zA-Z_][a-zA-Z0-9_]*)\b",
+            @"\b([a-zA-Z_][a-zA-Z0-9_]*)\b", // Match words that look like column names
             match =>
             {
-                // Only replace if not already prefixed with 'x.' and not a SQL keyword
                 string column = match.Value;
                 string[] sqlKeywords = { "AND", "OR", "NOT", "LIKE", "IN", "IS", "NULL" };
+
+                // Check if the match is not a SQL keyword and is not already prefixed with 'x.'
                 if (!column.StartsWith("x.") && !sqlKeywords.Contains(column.ToUpper()))
                 {
-                    return $"x.{column}";
+                    // Check if the previous character is not a quote (so it's not part of a string literal)
+                    if (match.Index == 0 || whereClause[match.Index - 1] != '\'')
+                    {
+                        return $"x.{column}"; // Replace column with 'x.column'
+                    }
                 }
+
+                // Return the original match if it's a string or already a valid expression
                 return column;
             }
         );
